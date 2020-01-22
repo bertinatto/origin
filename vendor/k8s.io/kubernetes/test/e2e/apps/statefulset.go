@@ -132,6 +132,8 @@ var _ = SIGDescribe("StatefulSet", func() {
 			cmd = "if [ \"$(cat /data/hostname)\" = \"$(hostname)\" ]; then exit 0; else exit 1; fi"
 			ginkgo.By("Running " + cmd + " in all stateful pods")
 			framework.ExpectNoError(e2esset.ExecInStatefulPods(c, ss, cmd))
+
+			framework.Failf("Failing on purpose in order to measure time taken for test to run")
 		})
 
 		// This can't be Conformance yet because it depends on a default
@@ -260,7 +262,7 @@ var _ = SIGDescribe("StatefulSet", func() {
 		ginkgo.It("should perform rolling updates and roll backs of template modifications with PVCs", func() {
 			ginkgo.By("Creating a new StatefulSet with PVCs")
 			e2epv.SkipIfNoDefaultStorageClass(c)
-			*(ss.Spec.Replicas) = 3
+			*(ss.Spec.Replicas) = 2
 			rollbackTest(c, ns, ss)
 		})
 
