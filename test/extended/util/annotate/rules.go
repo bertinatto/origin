@@ -223,12 +223,6 @@ var (
 			`\[sig-storage\]\[Late\] Metrics should report short mount times`,
 		},
 		"[Skipped:ibmroks]": {
-			// skip Gluster tests (not supported on ROKS worker nodes)
-			// https://bugzilla.redhat.com/show_bug.cgi?id=1825009 - e2e: skip Glusterfs-related tests upstream for rhel7 worker nodes
-			`\[Driver: gluster\]`,
-			`GlusterFS`,
-			`GlusterDynamicProvisioner`,
-
 			// Currently ibm-master-proxy-static and imbcloud-block-storage-plugin tolerate all taints
 			// https://bugzilla.redhat.com/show_bug.cgi?id=1825027
 			`\[sig-arch\] Managed cluster should ensure control plane operators do not make themselves unevictable`,
