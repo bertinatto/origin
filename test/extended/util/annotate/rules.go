@@ -231,7 +231,7 @@ var (
 
 			// Currently ibm-master-proxy-static and imbcloud-block-storage-plugin tolerate all taints
 			// https://bugzilla.redhat.com/show_bug.cgi?id=1825027
-			`\[Feature:Platform\] Managed cluster should ensure control plane operators do not make themselves unevictable`,
+			`\[sig-arch\] Managed cluster should ensure control plane operators do not make themselves unevictable`,
 		},
 		// Tests which can't be run/don't make sense to run against a cluster with all optional capabilities disabled
 		"[Skipped:NoOptionalCapabilities]": {
