@@ -35,9 +35,6 @@ var (
 			`should idle the service and DeploymentConfig properly`,       // idling with a single service and DeploymentConfig
 			`should answer endpoint and wildcard queries for the cluster`, // currently not supported by dns operator https://github.com/openshift/cluster-dns-operator/issues/43
 
-			// https://bugzilla.redhat.com/show_bug.cgi?id=1945091
-			`\[Feature:GenericEphemeralVolume\]`,
-
 			// https://bugzilla.redhat.com/show_bug.cgi?id=1996128
 			`\[sig-network\] \[Feature:IPv6DualStack\] should have ipv4 and ipv6 node podCIDRs`,
 
