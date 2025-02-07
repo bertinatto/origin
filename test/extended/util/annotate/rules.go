@@ -80,7 +80,6 @@ var (
 			// See https://bugzilla.redhat.com/show_bug.cgi?id=2019375
 			`\[sig-builds\]\[Feature:Builds\] build can reference a cluster service with a build being created from new-build should be able to run a build that references a cluster service`,
 			`\[sig-builds\]\[Feature:Builds\] oc new-app should succeed with a --name of 58 characters`,
-			`\[sig-arch\] Only known images used by tests`,
 		},
 		"[Skipped:SingleReplicaTopology]": {
 			`should be scheduled on different nodes`,
