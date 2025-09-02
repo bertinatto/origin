@@ -138,8 +138,6 @@ func createImageMirrorForInternalImages(prefix string, ref reference.DockerImage
 		if err != nil {
 			return nil, fmt.Errorf("blah: %v", err)
 		}
-		// fmt.Printf("original1----------------------------%#v\n", originalImageSetsFromBinaries)
-		// fmt.Printf("mapped1------------------------------%#v\n", mappedImageSetsFromBinaries)
 		if len(originalImageSetsFromBinaries) == 0 {
 			return nil, fmt.Errorf("no test images were reported by external binaries")
 		}
@@ -183,7 +181,6 @@ func createImageMirrorForInternalImages(prefix string, ref reference.DockerImage
 		covered := sets.NewString()
 		// i is the index for the external binary
 		for i := range defaultImageSets {
-			// fmt.Printf("updaedImageSets[%d]=%#v\n", i, updatedImageSets[i])
 			for imageID, imageConfig := range defaultImageSets[i] {
 				defaultConfig := defaultImageSets[i][imageID]
 				pullSpec := imageConfig.GetE2EImage()
@@ -215,11 +212,9 @@ func createImageMirrorForInternalImages(prefix string, ref reference.DockerImage
 
 		for from, to := range targetMappings {
 			if from == to {
-				// fmt.Println("skip1")
 				continue
 			}
 			if covered.Has(to) {
-				// fmt.Println("skip2")
 				continue
 			}
 			covered.Insert(to)
@@ -230,18 +225,14 @@ func createImageMirrorForInternalImages(prefix string, ref reference.DockerImage
 
 	covered := sets.NewString()
 	var lines []string
-	for i := range updatedImageSets {
-		// for i := range updatedImageSets {
-		// for imageID := range updatedImageSets[i] {
+	for i := range defaultImageSets {
 		for imageID := range defaultImageSets[i] {
 			a, b := defaultImageSets[i][imageID], updatedImageSets[i][imageID]
 			from, to := a.GetE2EImage(), b.GetE2EImage()
 			if from == to {
-				// fmt.Printf("skip3: %v -> %v\n", a, b)
 				continue
 			}
 			if covered.Has(from) {
-				// fmt.Println("skip4")
 				continue
 			}
 			covered.Insert(from)
@@ -251,11 +242,9 @@ func createImageMirrorForInternalImages(prefix string, ref reference.DockerImage
 
 	for from, to := range openshiftUpdated {
 		if from == to {
-			// fmt.Println("skip5")
 			continue
 		}
 		if covered.Has(from) {
-			// fmt.Println("skip6")
 			continue
 		}
 		covered.Insert(from)
