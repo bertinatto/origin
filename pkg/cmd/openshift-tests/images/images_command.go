@@ -4,11 +4,11 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"slices"
 	"sort"
 	"strings"
 	"time"
 
-	"golang.org/x/exp/slices"
 	k8simage "k8s.io/kubernetes/test/utils/image"
 
 	"github.com/openshift/library-go/pkg/image/reference"
@@ -116,6 +116,9 @@ func createImageMirrorForInternalImages(prefix string, ref reference.DockerImage
 	initialImageSets := []extensions.ImageSet{
 		k8simage.GetOriginalImageConfigs(),
 	}
+	initialMirroredImageSets := []extensions.ImageSet{
+		k8simage.GetMappedImageConfigs(k8simage.GetOriginalImageConfigs(), ref.Exact()),
+	}
 
 	// If ENV is not set, the list of images should come from external binaries
 	if len(os.Getenv("OPENSHIFT_SKIP_EXTERNAL_TESTS")) == 0 {
@@ -131,14 +134,19 @@ func createImageMirrorForInternalImages(prefix string, ref reference.DockerImage
 		// List test images from all available binaries
 		listContext, listContextCancel := context.WithTimeout(context.Background(), time.Minute)
 		defer listContextCancel()
-		imageSetsFromBinaries, err := externalBinaries.ListImages(listContext, 10)
+		originalImageSetsFromBinaries, mappedImageSetsFromBinaries, err := externalBinaries.ListImages(listContext, 10, false)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("blah: %v", err)
 		}
-		if len(imageSetsFromBinaries) == 0 {
+		// fmt.Printf("original1----------------------------%#v\n", originalImageSetsFromBinaries)
+		// fmt.Printf("mapped1------------------------------%#v\n", mappedImageSetsFromBinaries)
+		if len(originalImageSetsFromBinaries) == 0 {
 			return nil, fmt.Errorf("no test images were reported by external binaries")
 		}
-		initialImageSets = imageSetsFromBinaries
+
+		initialImageSets = originalImageSetsFromBinaries
+		initialMirroredImageSets = mappedImageSetsFromBinaries
+
 	}
 
 	// Take the initial images coming from external binaries and remove any exceptions that might exist.
@@ -159,10 +167,7 @@ func createImageMirrorForInternalImages(prefix string, ref reference.DockerImage
 	}
 
 	// Created a new slice with the updatedImageSets addresses for the images
-	updatedImageSets := []extensions.ImageSet{}
-	for i := range defaultImageSets {
-		updatedImageSets = append(updatedImageSets, k8simage.GetMappedImageConfigs(defaultImageSets[i], ref.Exact()))
-	}
+	updatedImageSets := initialMirroredImageSets
 
 	openshiftDefaults := image.OriginalImages()
 	openshiftUpdated := image.GetMappedImages(openshiftDefaults, imagesetup.DefaultTestImageMirrorLocation)
@@ -176,8 +181,10 @@ func createImageMirrorForInternalImages(prefix string, ref reference.DockerImage
 
 		// calculate the mapping of upstream images by setting defaults to baseRef
 		covered := sets.NewString()
-		for i := range updatedImageSets {
-			for imageID, imageConfig := range updatedImageSets[i] {
+		// i is the index for the external binary
+		for i := range defaultImageSets {
+			// fmt.Printf("updaedImageSets[%d]=%#v\n", i, updatedImageSets[i])
+			for imageID, imageConfig := range defaultImageSets[i] {
 				defaultConfig := defaultImageSets[i][imageID]
 				pullSpec := imageConfig.GetE2EImage()
 				if pullSpec == defaultConfig.GetE2EImage() {
@@ -208,9 +215,11 @@ func createImageMirrorForInternalImages(prefix string, ref reference.DockerImage
 
 		for from, to := range targetMappings {
 			if from == to {
+				// fmt.Println("skip1")
 				continue
 			}
 			if covered.Has(to) {
+				// fmt.Println("skip2")
 				continue
 			}
 			covered.Insert(to)
@@ -222,13 +231,17 @@ func createImageMirrorForInternalImages(prefix string, ref reference.DockerImage
 	covered := sets.NewString()
 	var lines []string
 	for i := range updatedImageSets {
-		for imageID := range updatedImageSets[i] {
+		// for i := range updatedImageSets {
+		// for imageID := range updatedImageSets[i] {
+		for imageID := range defaultImageSets[i] {
 			a, b := defaultImageSets[i][imageID], updatedImageSets[i][imageID]
 			from, to := a.GetE2EImage(), b.GetE2EImage()
 			if from == to {
+				// fmt.Printf("skip3: %v -> %v\n", a, b)
 				continue
 			}
 			if covered.Has(from) {
+				// fmt.Println("skip4")
 				continue
 			}
 			covered.Insert(from)
@@ -238,9 +251,11 @@ func createImageMirrorForInternalImages(prefix string, ref reference.DockerImage
 
 	for from, to := range openshiftUpdated {
 		if from == to {
+			// fmt.Println("skip5")
 			continue
 		}
 		if covered.Has(from) {
+			// fmt.Println("skip6")
 			continue
 		}
 		covered.Insert(from)

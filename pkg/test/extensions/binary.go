@@ -397,34 +397,44 @@ func (b *TestBinary) RunTests(ctx context.Context, timeout time.Duration, env []
 	return results
 }
 
-func (b *TestBinary) ListImages(ctx context.Context) (ImageSet, error) {
+func (b *TestBinary) ListImages(ctx context.Context) (ImageSet, ImageSet, error) {
 	start := time.Now()
 	binName := filepath.Base(b.binaryPath)
 
 	logrus.Infof("Listing images for %q", binName)
-	command := exec.Command(b.binaryPath, "images")
+	command := exec.Command(b.binaryPath, "list-images")
 	output, err := runWithTimeout(ctx, command, 10*time.Minute)
 	if err != nil {
-		return nil, fmt.Errorf("failed running '%s list': %w\nOutput: %s", b.binaryPath, err, output)
+		return nil, nil, fmt.Errorf("failed running '%s list': %w\nOutput: %s", b.binaryPath, err, output)
 	}
 
-	var images []Image
+	// var images []Image
+	images := map[string][]Image{}
 	err = json.Unmarshal(output, &images)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
-	result := make(ImageSet, len(images))
-	for _, image := range images {
+	resultOriginalImages := make(ImageSet, len(images["original"]))
+	for _, image := range images["original"] {
 		imageConfig := k8simage.Config{}
 		imageConfig.SetName(image.Name)
 		imageConfig.SetVersion(image.Version)
 		imageConfig.SetRegistry(image.Registry)
-		result[k8simage.ImageID(image.Index)] = imageConfig
+		resultOriginalImages[k8simage.ImageID(image.Index)] = imageConfig
+	}
+
+	resultMappedImages := make(ImageSet, len(images["mapped"]))
+	for _, image := range images["mapped"] {
+		imageConfig := k8simage.Config{}
+		imageConfig.SetName(image.Name)
+		imageConfig.SetVersion(image.Version)
+		imageConfig.SetRegistry(image.Registry)
+		resultMappedImages[k8simage.ImageID(image.Index)] = imageConfig
 	}
 
 	logrus.Infof("Listed %d test images for %q in %v", len(images), binName, time.Since(start))
-	return result, nil
+	return resultOriginalImages, resultMappedImages, nil
 }
 
 // ExtractAllTestBinaries determines the optimal release payload to use, and extracts all the external
@@ -613,13 +623,14 @@ func (binaries TestBinaries) Info(ctx context.Context, parallelism int) ([]*Exte
 	return infos, nil
 }
 
-func (binaries TestBinaries) ListImages(ctx context.Context, parallelism int) ([]ImageSet, error) {
+func (binaries TestBinaries) ListImages(ctx context.Context, parallelism int, mirrored bool) ([]ImageSet, []ImageSet, error) {
 	var (
-		allImages []ImageSet
-		mu        sync.Mutex
-		wg        sync.WaitGroup
-		errCh     = make(chan error, len(binaries))
-		jobCh     = make(chan *TestBinary)
+		allOriginalImages []ImageSet
+		allMappedImages   []ImageSet
+		mu                sync.Mutex
+		wg                sync.WaitGroup
+		errCh             = make(chan error, len(binaries))
+		jobCh             = make(chan *TestBinary)
 	)
 
 	// Producer: sends jobs to the jobCh channel
@@ -650,13 +661,20 @@ func (binaries TestBinaries) ListImages(ctx context.Context, parallelism int) ([
 					if binary.binaryPath == os.Args[0] {
 						continue // Skip self - only external binaries need to be queried for images
 					}
-
-					imageConfig, err := binary.ListImages(ctx)
+					originalImageConfig, mappedImageConfig, err := binary.ListImages(ctx)
 					if err != nil {
 						errCh <- err
 					}
+					// fmt.Printf("original----------------------------%#v\n", originalImageConfig)
+					// fmt.Printf("mapped------------------------------%#v\n", mappedImageConfig)
+
 					mu.Lock()
-					allImages = append(allImages, imageConfig)
+					if originalImageConfig != nil {
+						allOriginalImages = append(allOriginalImages, originalImageConfig)
+					}
+					if mappedImageConfig != nil {
+						allMappedImages = append(allMappedImages, mappedImageConfig)
+					}
 					mu.Unlock()
 				}
 			}
@@ -673,10 +691,13 @@ func (binaries TestBinaries) ListImages(ctx context.Context, parallelism int) ([
 		errs = append(errs, err.Error())
 	}
 	if len(errs) > 0 {
-		return nil, fmt.Errorf("encountered errors while listing tests: %s", strings.Join(errs, ";"))
+		// klog.Errorf("encountered errors while listing tests: %s", strings.Join(errs, ";"))
+		// return nil, nil, nil
 	}
 
-	return allImages, nil
+	// fmt.Printf("original2----------------------------%#v\n", allOriginalImages)
+	// fmt.Printf("mapped2------------------------------%#v\n", allMappedImages)
+	return allOriginalImages, allMappedImages, nil
 }
 
 // ListTests extracts the tests from all TestBinaries using the specified parallelism,
