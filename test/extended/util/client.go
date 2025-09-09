@@ -77,7 +77,6 @@ import (
 	userv1client "github.com/openshift/client-go/user/clientset/versioned"
 	"github.com/openshift/library-go/test/library/metrics"
 	apiextensionsclient "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset"
-	gatewayapiv1client "sigs.k8s.io/gateway-api/pkg/client/clientset/versioned"
 )
 
 // CLI provides function to call the OpenShift CLI and Kubernetes and OpenShift
@@ -711,10 +710,6 @@ func (c *CLI) BuildClient() buildv1client.Interface {
 	return buildv1client.NewForConfigOrDie(c.UserConfig())
 }
 
-// GatewayApiClient provides a GatewayAPI client for the current namespace user.
-func (c *CLI) GatewayApiClient() gatewayapiv1client.Interface {
-	return gatewayapiv1client.NewForConfigOrDie(c.UserConfig())
-}
 
 func (c *CLI) ImageClient() imagev1client.Interface {
 	return imagev1client.NewForConfigOrDie(c.UserConfig())
@@ -759,10 +754,6 @@ func (c *CLI) AdminConfigClient() configv1client.Interface {
 	)
 }
 
-// AdminGatewayApiClient provides a GatewayAPI client for the cluster admin user.
-func (c *CLI) AdminGatewayApiClient() gatewayapiv1client.Interface {
-	return gatewayapiv1client.NewForConfigOrDie(c.AdminConfig())
-}
 
 func (c *CLI) AdminImageClient() imagev1client.Interface {
 	return imagev1client.NewForConfigOrDie(c.AdminConfig())
